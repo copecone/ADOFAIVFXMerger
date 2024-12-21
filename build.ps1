@@ -1,0 +1,1 @@
+./venv/Scripts/python -m PyInstaller --noconfirm --distpath ./dist --onefile src/main.py

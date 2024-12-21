@@ -9,7 +9,7 @@ import requests
 from program_util.constants import API_RESPONSE_CODE_MSG as API_MSG
 from program_util.directory_util import check_dir
 
-tagSpecifics = ["AddDecoration", "MoveDecorations"]
+excludes = ["Twirl", "SetSpeed", "Bookmark", "Pause"]
 
 def main(args: list[str]) -> None:
     target = args[-1]
@@ -49,28 +49,35 @@ def main(args: list[str]) -> None:
         print(asset_dir)
         check_dir(asset_dir)
 
+        conversion = lambda s: (tag_prefix + s if s != '' else '')
+
         deco_set = set()
         deco_ignore = [""]
         for action in data["actions"]:
             new_action = action
 
             if "tag" in new_action:
-                new_action["tag"] = " ".join(map(lambda s: tag_prefix + s, new_action["tag"].split(" ")))
+                new_action["tag"] = " ".join(map(conversion, new_action["tag"].split(" ")))
             if "eventTag" in new_action:
-                new_action["eventTag"] = " ".join(map(lambda s: tag_prefix + s, new_action["eventTag"].split(" ")))
+                new_action["eventTag"] = " ".join(map(conversion, new_action["eventTag"].split(" ")))
 
             if "decorationImage" in new_action:
                 if new_action["decorationImage"] not in deco_ignore:
                     deco_set.add(new_action["decorationImage"])
                     new_action["decorationImage"] = os.path.join(hash_code, new_action["decorationImage"])
 
-            new_level["actions"].append(new_action)
+            if "bgImage" in new_action:
+                if new_action["bgImage"] not in deco_ignore:
+                    deco_set.add(new_action["bgImage"])
+                    new_action["bgImage"] = os.path.join(hash_code, new_action["bgImage"])
+
+            if new_action["eventType"] not in excludes or index == 0: new_level["actions"].append(new_action)
 
         for decoration in data["decorations"]:
             new_decoration = decoration
 
             if "tag" in new_decoration:
-                new_decoration["tag"] = " ".join(map(lambda s: tag_prefix + s, new_decoration["tag"].split(" ")))
+                new_decoration["tag"] = " ".join(map(conversion, new_decoration["tag"].split(" ")))
 
             if "decorationImage" in new_decoration:
                 if new_decoration["decorationImage"] not in deco_ignore:
@@ -85,7 +92,10 @@ def main(args: list[str]) -> None:
             if deco_dir != "":
                 check_dir(final_dir)
 
-            shutil.copy(os.path.join(file_dir, deco), os.path.join(asset_dir, deco))
+            try:
+                shutil.copy(os.path.join(file_dir, deco), os.path.join(asset_dir, deco))
+            except FileNotFoundError:
+                print(f"장식 파일 누락: {os.path.join(file_dir, deco)}")
 
     with open(os.path.join(target, "level.adofai"), "w", encoding = "utf-8") as f:
         f.write(json.dumps(new_level))
