@@ -6,10 +6,14 @@ import json
 import hashlib
 
 import requests
+
+from program_util import baseconverter
 from program_util.constants import API_RESPONSE_CODE_MSG as API_MSG
 from program_util.directory_util import check_dir
 
 excludes = ["Twirl", "SetSpeed", "Bookmark", "Pause"]
+ignore_event_type = ["PositionTrack", "EditorComment", "ScaleRadius"]
+ignores = []
 
 def main(args: list[str]) -> None:
     target = args[-1]
@@ -71,7 +75,12 @@ def main(args: list[str]) -> None:
                     deco_set.add(new_action["bgImage"])
                     new_action["bgImage"] = os.path.join(hash_code, new_action["bgImage"])
 
-            if new_action["eventType"] not in excludes or index == 0: new_level["actions"].append(new_action)
+            if new_action["eventType"] not in excludes or index == 0:
+                if new_action["eventType"] not in ignore_event_type:
+                    new_level["actions"].append(new_action)
+                elif new_action not in ignores:
+                    new_level["actions"].append(new_action)
+                    if index == 0: ignores.append(new_action)
 
         for decoration in data["decorations"]:
             new_decoration = decoration
